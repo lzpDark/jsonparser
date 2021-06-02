@@ -6,11 +6,13 @@ struct Token {
   enum Type {
     BEGIN_OBJ = 1,
     END_OBJ = 2,
-    COMMA = 4,
-    COLON = 8,
-    NUMBER = 16,
-    STRING = 32,
-    END_ALL = 64
+    BEGIN_ARR = 4,
+    END_ARR = 8,
+    COMMA = 16,
+    COLON = 32,
+    NUMBER = 64,
+    STRING = 128,
+    END_ALL = 256
   };
   Type type;
   std::string value;
@@ -27,6 +29,12 @@ std::vector<Token> tokenize(const char* input) {
   char ch = input[cursor];
   while(ch != '\0') { 
     switch(ch) {
+      case '[':
+        tokens.push_back(Token(Token::Type::BEGIN_ARR, "["));
+        break;
+      case ']':
+        tokens.push_back(Token(Token::Type::END_ARR, "]"));
+        break;
       case '{':
         tokens.push_back(Token(Token::Type::BEGIN_OBJ, "{"));
         break;
@@ -86,15 +94,29 @@ std::vector<Token> tokenize(const char* input) {
   return tokens;
 }
 
-class JsonObject;
-class JsonArray;
+struct JsonObject;
+struct JsonArray;
 struct JsonValue {
 
-  JsonValue() {}
-  JsonValue(int v) {}
-  JsonValue(std::string& v) {}
-  JsonValue(JsonObject* v) {}
-  JsonValue(JsonArray* v) {}
+  JsonValue() {
+
+  }
+
+  JsonValue(int v) {
+    (void)(v);
+  }
+
+  JsonValue(const std::string& v) {
+    (void)(v);
+  }
+
+  JsonValue(JsonObject* v) { 
+    (void)(v);
+  }
+
+  JsonValue(JsonArray* v) {  
+    (void)(v);
+  }
 
 };
 
@@ -110,12 +132,12 @@ struct JsonObject {
   }
 
   void addValue(const std::string& key, JsonObject* v) {
-
+    (void)(v);
     std::cout << "add " << key << " object->"  << std::endl;
   }
 
   void addValue(const std::string& key, JsonArray* v) {
-
+    (void)(v);
     std::cout << "add " << key << " array->" << std::endl;
   }
 };
@@ -123,6 +145,23 @@ struct JsonObject {
 
 struct JsonArray {
 
+  void addItem(int v) {
+    std::cout << "addItem int->" << v << std::endl;
+  }
+
+  void addItem(const std::string& v) { 
+    std::cout << "addItem string->" << v << std::endl;
+  }
+
+  void addItem(JsonObject* v) {  
+    (void)(v);
+    std::cout << "addItem object->" << std::endl;
+  }
+
+  void addItem(JsonArray* v) {
+    (void)(v);
+    std::cout << "addItem array->" << std::endl;
+  };
 };
 
 bool isTypeExpected(int expectedType, int type) {
@@ -144,7 +183,7 @@ JsonObject* parseObject(std::vector<Token> &tokens) {
   int preType = -1;
   int expectedType = Token::Type::BEGIN_OBJ; 
   for(auto& token : tokens) {
-    auto type = token.type;
+    const Token::Type type = token.type;
     switch(type) {
       case Token::Type::END_ALL:
         return jsonObject;
@@ -202,6 +241,105 @@ JsonObject* parseObject(std::vector<Token> &tokens) {
   return jsonObject;
 }
 
+JsonObject* parseObject(const char* json) {
+  auto tokens = tokenize(json);
+#ifdef PRINT_DEBUG
+  for(auto& item : tokens) {
+    std::cout << "tokenize: " << item.type << " " << item.value << std::endl;
+  }
+#endif 
+  return parseObject(tokens);
+}
+
 JsonArray* parseArray(std::vector<Token> &tokens) {
-  return nullptr;
+  JsonArray* resArray = nullptr;
+  JsonArray *jsonArray = nullptr;
+  int level = 0;
+  int expectedType = Token::Type::BEGIN_ARR;
+  for(auto& token : tokens) {
+    int type = token.type;
+    switch(type) {
+      case Token::Type::END_ALL:
+        break;
+      case Token::Type::COMMA:
+        {
+          if(!isTypeExpected(expectedType, type)) {
+            return jsonArray;
+          }
+          expectedType = (Token::Type::NUMBER | Token::Type::STRING 
+              | Token::Type::BEGIN_OBJ | Token::Type::BEGIN_ARR );
+        }
+        break;
+      case Token::Type::BEGIN_ARR:
+        {
+          level++;
+          if(!isTypeExpected(expectedType, type)) {
+            return jsonArray;
+          }
+          jsonArray = new JsonArray;
+          expectedType = (Token::Type::NUMBER | Token::Type::STRING 
+              | Token::Type::BEGIN_OBJ | Token::Type::BEGIN_ARR 
+              | Token::Type::END_ARR);
+        }
+        break;
+      case Token::Type::NUMBER:
+        {
+          if(!isTypeExpected(expectedType, type)) {
+            return jsonArray;
+          }
+          jsonArray->addItem(stringToInt(token.value)); 
+          expectedType = (Token::Type::COMMA | Token::Type::END_ARR);
+        }
+        break;
+      case Token::Type::STRING:
+        {
+          if(!isTypeExpected(expectedType, type)) {
+            return jsonArray;
+          }
+          jsonArray->addItem(token.value);
+          expectedType = (Token::Type::COMMA | Token::Type::END_ARR);
+        }
+        break;
+
+      case Token::Type::BEGIN_OBJ:
+        {
+          if(!isTypeExpected(expectedType, type)) {
+            return jsonArray;
+          }
+          std::vector<Token> objTokenList; // fixme add the tokens into
+          jsonArray->addItem(parseObject(objTokenList));
+          expectedType = (Token::Type::COMMA | Token::Type::END_ARR);
+        }
+        break;
+
+      case Token::Type::END_ARR:
+        {
+          if(!isTypeExpected(expectedType, type)) {
+            return jsonArray;
+          }
+          if(level == 1) {
+            break;
+          }
+          level--;
+          if(!resArray) {
+            resArray = new JsonArray;
+          }
+          resArray->addItem(jsonArray);
+          expectedType = (Token::Type::COMMA | Token::Type::END_ARR);
+        }
+        break;
+
+    } // switch
+  }
+  return resArray;
+}
+
+JsonArray* parseArray(const char* json) {
+  auto tokens = tokenize(json);
+#ifdef PRINT_DEBUG
+  for(auto& item : tokens) {
+    std::cout << "tokenize: " << item.type << " " << item.value << std::endl;
+  }
+#endif
+  return parseArray(tokens);
 }

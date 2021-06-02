@@ -5,13 +5,13 @@
 
 int main(int argc, char* argv[]) {
 
+  std::cout << "parse obj:" << std::endl;
   const char *input = "{\"age\":12, \"name\":\"lzp\", \"gender\":\"man\"}";
+  auto jsonObj = parseObject(input);
 
-  auto tokens =  tokenize(input);
-  for(auto& token : tokens) {
-//    std::cout << token.type << " " << token.value << std::endl;
-  }
-  auto jsonObj = parseObject(tokens);
+  std::cout << "parse arr:" << std::endl;
+  const char* arrInput = "[1, \"ok\", {\"age1\",13}]";
+  auto jsonArr = parseArray(arrInput);
 
   return 0;
 }

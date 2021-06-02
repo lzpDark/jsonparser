@@ -1,5 +1,8 @@
-all:
-	g++ src/main.cpp -g -o easyjson
+all: debug
+	g++ src/main.cpp -o easyjson
+
+debug:
+	g++ src/main.cpp -g -DPRINT_DEBUG -o easyjson_debug
 
 clean:
-	rm easyjson
+	rm easyjson easyjson_debug
