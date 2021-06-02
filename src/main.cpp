@@ -9,8 +9,9 @@ int main(int argc, char* argv[]) {
 
   auto tokens =  tokenize(input);
   for(auto& token : tokens) {
-    std::cout << token.type << " " << token.value << std::endl;
+//    std::cout << token.type << " " << token.value << std::endl;
   }
+  auto jsonObj = parseObject(tokens);
 
   return 0;
 }
