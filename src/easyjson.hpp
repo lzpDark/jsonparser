@@ -148,6 +148,35 @@ struct JsonValue {
   JsonArray* valueArray;
   JsonNull* valueNull;
 
+  void print() {
+    std::cout << type << ":";
+    if("int" == type) 
+    {
+      std::cout << valueInt;
+    }
+    else if( "boolean" == type)
+    {
+      std::cout << valueBoolean;
+    }
+    else if( "string" == type)
+    {
+      std::cout << valueString;
+    }
+    else if( "object" == type)
+    {
+
+    }
+    else if( "array" == type) 
+    {
+
+    }
+    else if( "null" == type)
+    {
+      std::cout << "null";    
+    }
+    std::cout << ";";
+  }
+
   JsonValue() {
    // default ? 
   }
@@ -290,32 +319,51 @@ struct JsonObject {
 
 struct JsonArray {
 
+  JsonArray() {
+  
+  }
+
+  std::vector<JsonValue*> jsonValueList;
+
   void addItem(int v) {
     std::cout << "addItem int->" << v << std::endl;
+    jsonValueList.push_back(new JsonValue(v));
   }
 
   void addItem(const std::string& v) { 
     std::cout << "addItem string->" << v << std::endl;
+    jsonValueList.push_back(new JsonValue(v));
   }
 
   void addItem(JsonObject* v) {  
-    (void)(v);
     std::cout << "addItem object->" << std::endl;
+    jsonValueList.push_back(new JsonValue(v));
   }
 
   void addItem(JsonArray* v) {
-    (void)(v);
     std::cout << "addItem array->" << std::endl;
+    jsonValueList.push_back(new JsonValue(v));
   };
 
   void addItem(JsonNull* v) {
-    (void)(v);
     std::cout << "addItem null" << std::endl;
+    jsonValueList.push_back(new JsonValue(v));
   }
 
   void addItem(bool v){
-    (void)(v);
     std::cout << "addItem bool->" << v << std::endl;
+    jsonValueList.push_back(new JsonValue(v));
+  }
+
+  JsonValue* getItem(int idx) {
+    if(idx >=0 && idx < jsonValueList.size()) {
+      return jsonValueList.at(idx);
+    }
+    return nullptr;
+  }
+
+  int size() {
+    return jsonValueList.size();
   }
 };
 
@@ -435,8 +483,8 @@ JsonObject* parseObject(const char* json) {
 }
 
 JsonArray* parseArray(std::vector<Token> &tokens) {
-  JsonArray* resArray = nullptr;
   JsonArray *jsonArray = nullptr;
+  std::vector<JsonArray*> stack;
   int level = 0;
   int expectedType = Token::Type::BEGIN_ARR;
   while(!tokens.empty()) {
@@ -460,11 +508,17 @@ JsonArray* parseArray(std::vector<Token> &tokens) {
         break;
       case Token::Type::BEGIN_ARR:
         {
-          level++;
           if(!isTypeExpected(expectedType, type)) {
             return jsonArray;
           }
+          level++;
           jsonArray = new JsonArray;
+          if(level > 1 && !stack.empty()) {
+            stack.back()->addItem(jsonArray);
+          }else{
+            stack.push_back(jsonArray);
+          }
+          stack.push_back(jsonArray);
           expectedType = (Token::Type::NUMBER | Token::Type::STRING 
               | Token::Type::BEGIN_OBJ | Token::Type::BEGIN_ARR 
               | Token::Type::END_ARR);
@@ -508,10 +562,8 @@ JsonArray* parseArray(std::vector<Token> &tokens) {
             break;
           }
           level--;
-          if(!resArray) {
-            resArray = new JsonArray;
-          }
-          resArray->addItem(jsonArray);
+          stack.pop_back();
+          jsonArray = stack.back();
           expectedType = (Token::Type::COMMA | Token::Type::END_ARR);
         }
         break;
@@ -519,7 +571,8 @@ JsonArray* parseArray(std::vector<Token> &tokens) {
         {
 
           if(!isTypeExpected(expectedType, type)) {
-            return resArray;
+            // error 
+            return nullptr;
           } 
           jsonArray->addItem((token.value == "true") ? true : false);
           expectedType = (Token::Type::COMMA | Token::Type::END_ARR);
@@ -528,7 +581,8 @@ JsonArray* parseArray(std::vector<Token> &tokens) {
       case Token::Type::NULL_OBJ:
         {
           if(!isTypeExpected(expectedType, type)) {
-            return resArray;
+            // error 
+            return nullptr;
           } 
           jsonArray->addItem(new JsonNull);
           expectedType = (Token::Type::COMMA | Token::Type::END_ARR);
@@ -538,7 +592,7 @@ JsonArray* parseArray(std::vector<Token> &tokens) {
     } // switch
     tokens.erase(tokens.begin());
   }
-  return resArray;
+  return stack.empty() ? nullptr : stack.back();
 }
 
 JsonArray* parseArray(const char* json) {
