@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <map>
 
 struct Token {
   enum Type {
@@ -129,73 +130,161 @@ std::vector<Token> tokenize(const char* input) {
 }
 
 struct JsonNull {
-
+  JsonNull() {
+    type = "null";
+  }
+  std::string type;
 };
 
 struct JsonObject;
 struct JsonArray;
 struct JsonValue {
 
-  JsonValue() {
+  std::string type;
+  int valueInt;
+  std::string valueString;
+  bool valueBoolean;
+  JsonObject* valueObject;
+  JsonArray* valueArray;
+  JsonNull* valueNull;
 
+  JsonValue() {
+   // default ? 
   }
 
   JsonValue(int v) {
-    (void)(v);
+    type = "int";
+    valueInt = v;
   }
 
   JsonValue(const std::string& v) {
-    (void)(v);
+    type = "string";
+    valueString = v;
   }
 
   JsonValue(bool v) {
-    (void)(v);
+    type = "boolean";
+    valueBoolean = v;
   }
 
   JsonValue(JsonNull* v) {
-    (void)(v);
+    type = "null";
+    valueNull = v;
   }
 
   JsonValue(JsonObject* v) { 
-    (void)(v);
+    type = "object";
+    valueObject = v;
   }
 
   JsonValue(JsonArray* v) {  
-    (void)(v);
+    type = "array";
+    valueArray = v;
   }
 
+  int getIntValue(){
+    if(type != "int"){
+      return 0;
+    } 
+    return valueInt;
+  }
+
+  std::string getStringValue() {
+    if(type != "string") {
+      return "";
+    }
+    return valueString;
+  }
+
+  bool getBooleanValue(bool defaultV = false){
+    if(type != "boolean"){
+      return defaultV; // err
+    }
+    return valueBoolean; 
+  }
+
+  JsonObject* getObjectValue() {
+    if(type != "object") {
+      return nullptr;
+    }
+    return valueObject;
+  }
+
+  JsonArray* getArrayValue() {
+    if(type != "array") {
+      return nullptr;
+    }
+    return valueArray;
+  }
+
+  JsonNull* getNullValue() {
+    if(type != "null") {
+      return nullptr;
+    }
+    return valueNull;
+  }
 };
 
 struct JsonObject {
 
+  std::map<std::string, JsonValue*> jsonValueMap;
+
   void addValue(const std::string& key, int v) {
     std::cout << "add " << key << " int->" << v << std::endl;
+    jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, std::string v) {
-
     std::cout << "add " << key << " string->" << v << std::endl;
+    jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, JsonObject* v) {
-    (void)(v);
     std::cout << "add " << key << " object->"  << std::endl;
+    jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, JsonArray* v) {
-    (void)(v);
     std::cout << "add " << key << " array->" << std::endl;
+    jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, bool v) {
-    (void)(v);
     std::cout << "add " << key << " bool-> " << v << std::endl;
+    jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, JsonNull* v) {
-    (void)(v);
     std::cout << "add " << key << " null " << std::endl;
+    jsonValueMap[key] = new JsonValue(v);
   }
+
+  int getIntValue(const std::string& key) {
+    return jsonValueMap[key]->getIntValue();
+  }
+
+  bool getBooleanValue(const std::string& key) {
+    auto mapv = jsonValueMap[key]; 
+    return mapv->getBooleanValue();
+  }
+  
+  std::string getStringValue(const std::string& key) {
+    return jsonValueMap[key]->getStringValue();
+  }
+  
+  JsonObject* getObjectValue(const std::string& key) {
+    return jsonValueMap[key]->getObjectValue();
+  }
+  
+  JsonArray* getArrayValue(const std::string& key) {
+    return jsonValueMap[key]->getArrayValue();
+  }
+  
+  JsonNull* getNullValue(const std::string& key) {
+    auto mapv = jsonValueMap[key];
+    return mapv->getNullValue();
+  }
+
 };
 
 

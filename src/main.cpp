@@ -3,15 +3,39 @@
 #include <string>
 #include "easyjson.hpp"
 
-int main(int argc, char* argv[]) {
-
+void testObj() {
   std::cout << "parse obj:" << std::endl;
   const char *input = "{\"age\":12, \"name\":\"lzp\", \"gender\":\"man\", \"good\":true, \"hungry\":false, \"tag\":null}";
   auto jsonObj = parseObject(input);
 
+  int age =  jsonObj->getIntValue("age");
+  std::string name =  jsonObj->getStringValue("name");
+  std::string gender =  jsonObj->getStringValue("gender");
+  bool good = jsonObj->getBooleanValue("good");
+  bool hungry = jsonObj->getBooleanValue("hungry");
+  auto nullObj =  jsonObj->getNullValue("tag");
+  std::string tagType = nullObj->type;
+
+  std::cout << "parsed-obj:" << std::endl 
+    << " age=" << age 
+    << " name=" << name
+    << " gender=" << gender
+    << " good=" << good
+    << " hungry=" << hungry
+    << " tag=" << tagType
+    << std::endl;
+}
+
+void testArray() {
   std::cout << "parse arr:" << std::endl;
   const char* arrInput = "[1, \"ok\", {\"age1\": 13}, true, false, null]";
   auto jsonArr = parseArray(arrInput);
+}
 
+
+int main(int argc, char* argv[]) {
+
+  testObj();
+  testArray();
   return 0;
 }
