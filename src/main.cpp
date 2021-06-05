@@ -5,9 +5,11 @@
 
 void testObj() {
   std::cout << "parse obj:" << std::endl;
-  const char *input = "{\"age\":12, \"name\":\"lzp\", \"gender\":\"man\", \"good\":true, \"hungry\":false, \"tag\":null}";
+  const char *input = "{\"subObj\":{\"subAge\":13}, \"age\":12, \"name\":\"lzp\", \"gender\":\"man\", \"good\":true, \"hungry\":false, \"tag\":null}";
   auto jsonObj = parseObject(input);
 
+  auto subObj = jsonObj->getObjectValue("subObj");
+  int subAge = subObj->getIntValue("subAge");
   int age =  jsonObj->getIntValue("age");
   std::string name =  jsonObj->getStringValue("name");
   std::string gender =  jsonObj->getStringValue("gender");
@@ -17,6 +19,7 @@ void testObj() {
   std::string tagType = nullObj->type;
 
   std::cout << "parsed-obj:" << std::endl 
+    << " subAge = " << subAge
     << " age=" << age 
     << " name=" << name
     << " gender=" << gender

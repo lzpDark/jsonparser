@@ -381,7 +381,9 @@ int stringToInt(const std::string& v) {
 }
 
 JsonObject* parseObject(std::vector<Token> &tokens, bool parseOneLevel = false) {
-  JsonObject* jsonObject = new JsonObject;
+  JsonObject *resJsonObject = nullptr;
+  JsonObject* jsonObject = nullptr;
+  std::vector<JsonObject*> stack;
   std::string key = "";
   int preType = -1;
   int expectedType = Token::Type::BEGIN_OBJ; 
@@ -390,27 +392,37 @@ JsonObject* parseObject(std::vector<Token> &tokens, bool parseOneLevel = false) 
     const Token::Type type = token.type;
     switch(type) {
       case Token::Type::END_ALL:
-        return jsonObject;
+        return resJsonObject;
       case Token::Type::BEGIN_OBJ:
         if(!isTypeExpected(expectedType, type)) {
-          return jsonObject;
+          return resJsonObject;
         } 
+        jsonObject = new JsonObject;
+        if(preType != -1) {
+          stack.back()->addValue(key, jsonObject);
+        }else{
+          resJsonObject = jsonObject;
+        }
+        stack.push_back(jsonObject);
+        
         expectedType = (Token::Type::STRING);
         preType = type;
         break;
       case Token::Type::END_OBJ:
-        if(parseOneLevel) { // only parse one level bracket
-          return jsonObject;
-        }
         if(!isTypeExpected(expectedType, type)) {
-          return jsonObject;
-        } 
-        expectedType = Token::Type::COMMA;
+          return resJsonObject;
+        }
+        if(parseOneLevel) { // only parse one level bracket
+          return resJsonObject;
+        }
+        stack.pop_back();
+        jsonObject = stack.back();
+        expectedType = Token::Type::COMMA | Token::Type::END_OBJ;
         preType = type;
         break;
       case Token::Type::COLON:
         if(!isTypeExpected(expectedType, type)) {
-          return jsonObject;
+          return resJsonObject;
         } 
         expectedType = (Token::Type::NUMBER 
             | Token::Type::STRING
@@ -421,14 +433,14 @@ JsonObject* parseObject(std::vector<Token> &tokens, bool parseOneLevel = false) 
         break;
       case Token::Type::COMMA:
         if(!isTypeExpected(expectedType, type)) {
-          return jsonObject;
+          return resJsonObject;
         } 
         expectedType = (Token::Type::STRING);
         preType = type;
         break;
       case Token::Type::NUMBER:
         if(!isTypeExpected(expectedType, type)) {
-          return jsonObject;
+          return resJsonObject;
         } 
         jsonObject->addValue(key, stringToInt(token.value)); 
         expectedType = (Token::Type::COMMA | Token::Type::END_OBJ);
@@ -436,7 +448,7 @@ JsonObject* parseObject(std::vector<Token> &tokens, bool parseOneLevel = false) 
         break;
       case Token::Type::STRING:
         if(!isTypeExpected(expectedType, type)) {
-          return jsonObject;
+          return resJsonObject;
         } 
         if(preType == Token::Type::COLON) { // string as value
           jsonObject->addValue(key, token.value);
@@ -451,7 +463,7 @@ JsonObject* parseObject(std::vector<Token> &tokens, bool parseOneLevel = false) 
         {
 
           if(!isTypeExpected(expectedType, type)) {
-            return jsonObject;
+            return resJsonObject;
           } 
           jsonObject->addValue(key, (token.value == "true") ? true : false);
           expectedType = (Token::Type::COMMA | Token::Type::END_OBJ);
@@ -460,7 +472,7 @@ JsonObject* parseObject(std::vector<Token> &tokens, bool parseOneLevel = false) 
       case Token::Type::NULL_OBJ:
         {
           if(!isTypeExpected(expectedType, type)) {
-            return jsonObject;
+            return resJsonObject;
           } 
           jsonObject->addValue(key, new JsonNull);
           expectedType = (Token::Type::COMMA | Token::Type::END_OBJ);
@@ -469,7 +481,7 @@ JsonObject* parseObject(std::vector<Token> &tokens, bool parseOneLevel = false) 
     } // switch
     tokens.erase(tokens.begin());
   } 
-  return jsonObject;
+  return resJsonObject;
 }
 
 JsonObject* parseObject(const char* json) {
