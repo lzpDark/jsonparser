@@ -129,6 +129,14 @@ std::vector<Token> tokenize(const char* input) {
   return tokens;
 }
 
+struct JsonValue;
+struct JsonObject;
+struct JsonArray;
+
+std::string toJson(JsonValue* jsonValue);
+std::string toJson(JsonObject* jsonObject);
+std::string toJson(JsonArray* jsonArray);
+
 struct JsonNull {
   JsonNull() {
     type = "null";
@@ -136,8 +144,6 @@ struct JsonNull {
   std::string type;
 };
 
-struct JsonObject;
-struct JsonArray;
 struct JsonValue {
 
   std::string type;
@@ -148,7 +154,7 @@ struct JsonValue {
   JsonArray* valueArray;
   JsonNull* valueNull;
 
-  void print() {
+    void print() {
     std::cout << type << ":";
     if("int" == type) 
     {
@@ -259,32 +265,26 @@ struct JsonObject {
   std::map<std::string, JsonValue*> jsonValueMap;
 
   void addValue(const std::string& key, int v) {
-    std::cout << "add " << key << " int->" << v << std::endl;
     jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, std::string v) {
-    std::cout << "add " << key << " string->" << v << std::endl;
     jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, JsonObject* v) {
-    std::cout << "add " << key << " object->"  << std::endl;
     jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, JsonArray* v) {
-    std::cout << "add " << key << " array->" << std::endl;
     jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, bool v) {
-    std::cout << "add " << key << " bool-> " << v << std::endl;
     jsonValueMap[key] = new JsonValue(v);
   }
 
   void addValue(const std::string& key, JsonNull* v) {
-    std::cout << "add " << key << " null " << std::endl;
     jsonValueMap[key] = new JsonValue(v);
   }
 
@@ -313,45 +313,37 @@ struct JsonObject {
     auto mapv = jsonValueMap[key];
     return mapv->getNullValue();
   }
-
 };
 
-
 struct JsonArray {
+
+  std::vector<JsonValue*> jsonValueList;
 
   JsonArray() {
   
   }
 
-  std::vector<JsonValue*> jsonValueList;
-
   void addItem(int v) {
-    std::cout << "addItem int->" << v << std::endl;
     jsonValueList.push_back(new JsonValue(v));
   }
 
   void addItem(const std::string& v) { 
-    std::cout << "addItem string->" << v << std::endl;
     jsonValueList.push_back(new JsonValue(v));
   }
 
   void addItem(JsonObject* v) {  
-    std::cout << "addItem object->" << std::endl;
     jsonValueList.push_back(new JsonValue(v));
   }
 
   void addItem(JsonArray* v) {
-    std::cout << "addItem array->" << std::endl;
     jsonValueList.push_back(new JsonValue(v));
   };
 
   void addItem(JsonNull* v) {
-    std::cout << "addItem null" << std::endl;
     jsonValueList.push_back(new JsonValue(v));
   }
 
   void addItem(bool v){
-    std::cout << "addItem bool->" << v << std::endl;
     jsonValueList.push_back(new JsonValue(v));
   }
 
@@ -615,4 +607,81 @@ JsonArray* parseArray(const char* json) {
   }
 #endif
   return parseArray(tokens);
+}
+
+std::string toJson(JsonValue* jsonValue) {
+  std::string json = "";
+  if(jsonValue == nullptr ) {
+   return json;
+  }
+  std::string type = jsonValue->type;
+  if("int" == type) 
+  {
+    int tmp = jsonValue->valueInt;
+    std::vector<char> stack;
+    while(tmp != 0) {
+      stack.push_back((char)('0' + (tmp % 10)));
+      tmp /= 10;
+    }
+    while(!stack.empty()) {
+      json += stack.back();
+      stack.pop_back();
+    }
+  }
+  else if( "boolean" == type)
+  {
+    json = (jsonValue->valueBoolean ? "true" : "false");
+  }
+  else if( "string" == type)
+  {
+    json = jsonValue->valueString;
+  }
+  else if( "object" == type)
+  {
+    json = toJson(jsonValue->valueObject);
+  }
+  else if( "array" == type) 
+  { 
+    json = toJson(jsonValue->valueArray);
+  }
+  else if( "null" == type)
+  {
+    json = "null";    
+  }
+  return json;
+}
+
+std::string toJson(JsonObject* jsonObject) {
+  std::string json = ""; 
+  if(jsonObject == nullptr ) {
+   return json;
+  }
+  json += "{";  
+  auto valueMap = jsonObject->jsonValueMap;
+  for(auto ite = valueMap.begin(); ite!=valueMap.end(); ite++){
+    json += "\"";
+    json += ite->first;
+    json += "\":";
+    json += toJson(ite->second);
+    json += ",";
+  }
+  json.erase(json.length() - 1);
+  json += "}";
+  return json;
+}
+
+
+std::string toJson(JsonArray* jsonArray) {
+  std::string json = "";
+  if(jsonArray == nullptr ) {
+   return json;
+  }
+  json += "[";
+  for(const auto& item : jsonArray->jsonValueList) {
+    json += toJson(item);
+    json += ",";
+  }
+  json.erase(json.length() - 1);
+  json += "]";
+  return json;
 }

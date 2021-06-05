@@ -8,25 +8,23 @@ void testObj() {
   const char *input = "{\"subObj\":{\"subAge\":13}, \"age\":12, \"name\":\"lzp\", \"gender\":\"man\", \"good\":true, \"hungry\":false, \"tag\":null}";
   auto jsonObj = parseObject(input);
 
-  auto subObj = jsonObj->getObjectValue("subObj");
-  int subAge = subObj->getIntValue("subAge");
-  int age =  jsonObj->getIntValue("age");
-  std::string name =  jsonObj->getStringValue("name");
-  std::string gender =  jsonObj->getStringValue("gender");
-  bool good = jsonObj->getBooleanValue("good");
-  bool hungry = jsonObj->getBooleanValue("hungry");
-  auto nullObj =  jsonObj->getNullValue("tag");
-  std::string tagType = nullObj->type;
+  std::cout << "json:" << std::endl
+    << toJson(jsonObj) << std::endl;
+}
 
-  std::cout << "parsed-obj:" << std::endl 
-    << " subAge = " << subAge
-    << " age=" << age 
-    << " name=" << name
-    << " gender=" << gender
-    << " good=" << good
-    << " hungry=" << hungry
-    << " tag=" << tagType
-    << std::endl;
+void testObj2Str() {
+  JsonObject obj;
+  obj.addValue("num_key", 1);
+  obj.addValue("false_key", false);
+  obj.addValue("null_key", new JsonNull);
+  obj.addValue("string_key", "string_value");
+  JsonObject subObj;
+  subObj.addValue("subInt", 13);
+  obj.addValue("sub_obj_key", &subObj);
+  JsonArray subArr;
+  subArr.addItem(13);
+  obj.addValue("sub_arr_key", &subArr);
+  std::cout << toJson(&obj) << std::endl;
 }
 
 void testArray() {
@@ -39,15 +37,34 @@ void testArray() {
     if(item == nullptr ){
      std::cout << "no such itme with idx = " << i << "; ";
     }else{
-      item->print();
+//      item->print();
     }
   }
+  std::cout << "json:" << std::endl
+    << toJson(jsonArr) << std::endl;
+}
+
+void testArr2Str() {
+  JsonArray arr;
+  arr.addItem(1);
+  arr.addItem(false);
+  arr.addItem("string_value");
+  JsonObject subObj;
+  subObj.addValue("sub_obj_int_key", 13);
+  arr.addItem(&subObj);
+  JsonArray subArr;
+  subArr.addItem(11);
+  arr.addItem(&subArr);
+  std::cout << toJson(&arr) << std::endl;
+
 }
 
 
 int main(int argc, char* argv[]) {
 
   testObj();
+  testObj2Str();
   testArray();
+  testArr2Str();
   return 0;
 }
