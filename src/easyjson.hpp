@@ -25,10 +25,24 @@ struct Token {
   }
 };
 
+bool convertEscape(char& ch) {
+
+  char escapeMap[8] = {'"', '\\', '/', 'b', 'f', 'n', 'r', 't' };
+  char map[8] = {'"', '\\', '/', '\b', '\f', '\n', '\r', '\t'};
+  for(int i = 0; i<8; i++) {
+    if(escapeMap[i] == ch) {
+      ch = map[i]; 
+      return true;
+    }
+  }
+  return false;
+}
+
 std::vector<Token> tokenize(const char* input) {
   int cursor = 0;
   std::vector<Token> tokens;
   std::string value =  "";
+  bool isPreEscape = false;
   char ch = input[cursor];
   while(ch != '\0') { 
     switch(ch) {
@@ -75,14 +89,35 @@ std::vector<Token> tokenize(const char* input) {
         tokens.push_back(Token(Token::Type::NUMBER, value));
         break;
       case '"':
-        cursor++; 
-        ch = input[cursor];
-        while(ch != '\0' && ch != '"') {
-          value += ch;
-          cursor++;
+        {
+          cursor++; 
           ch = input[cursor];
+          while(ch != '\0') {
+
+            if(!isPreEscape && ch == '"') {
+              // end of string
+              break;
+            }
+            if(isPreEscape) {
+              if(!convertEscape(ch)) {
+                // error 
+                std::cout << "err escape : " << ch << std::endl;
+                return tokens;
+              }
+              isPreEscape = false;
+            } else {
+              if(ch == '\\') {
+                isPreEscape = true;
+              }
+            }
+            if(!isPreEscape) {
+              value += ch;
+            } 
+            cursor++;
+            ch = input[cursor];
+          } // while
+          tokens.push_back(Token(Token::Type::STRING, value)); 
         }
-        tokens.push_back(Token(Token::Type::STRING, value)); 
         break;
       case 'n':
         {
@@ -116,8 +151,15 @@ std::vector<Token> tokenize(const char* input) {
           tokens.push_back(Token(Token::Type::BOOLEAN, origin));        
         }
         break;
+      case ' ':
+        break;
+      case '\r':
+        break;
+      case '\n':
+        break;
       default:
-
+        std::cout << "error character while tokenize : " << ch << std::endl;
+        return tokens;
         break;
     } // switch
     if(ch == '\0') break;
