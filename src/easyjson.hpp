@@ -74,19 +74,31 @@ std::vector<Token> tokenize(const char* input) {
       case '7':
       case '8':
       case '9':
-        value += ch; 
-        cursor ++;
-        ch = input[cursor];
-        while(ch != '\0') {
-          if(ch < '0' || ch > '9') {
-            break;
-          }
-          value += ch;
-          cursor++;
+        {
+          value += ch; 
+          cursor ++;
           ch = input[cursor];
+          bool hasDot = false;
+          while(ch != '\0') {
+            if(!hasDot) {
+              if(ch == '.') {
+                value +=ch;
+                hasDot = true;
+                cursor++;
+                ch = input[cursor];
+                continue;
+              }
+            }
+            if(ch < '0' || ch > '9') {
+              break;
+            }
+            value += ch;
+            cursor++;
+            ch = input[cursor];
+          }
+          cursor--;
+          tokens.push_back(Token(Token::Type::NUMBER, value));
         }
-        cursor--;
-        tokens.push_back(Token(Token::Type::NUMBER, value));
         break;
       case '"':
         {
@@ -190,6 +202,7 @@ struct JsonValue {
 
   std::string type;
   int valueInt;
+  double valueDouble;
   std::string valueString;
   bool valueBoolean;
   JsonObject* valueObject;
@@ -201,6 +214,10 @@ struct JsonValue {
     if("int" == type) 
     {
       std::cout << valueInt;
+    }
+    else if("double" == type) 
+    {
+      std::cout << valueDouble;
     }
     else if( "boolean" == type)
     {
@@ -234,6 +251,11 @@ struct JsonValue {
     valueInt = v;
   }
 
+  JsonValue(double v) {
+    type = "double";
+    valueDouble = v;
+  }
+
   JsonValue(const std::string& v) {
     type = "string";
     valueString = v;
@@ -264,6 +286,13 @@ struct JsonValue {
       return 0;
     } 
     return valueInt;
+  }
+
+  double getDoubleValue() {
+    if(type != "double") {
+      return 0.0;
+    }
+    return valueDouble;
   }
 
   std::string getStringValue() {
@@ -307,6 +336,10 @@ struct JsonObject {
   std::map<std::string, JsonValue*> jsonValueMap;
 
   void addValue(const std::string& key, int v) {
+    jsonValueMap[key] = new JsonValue(v);
+  }
+
+  void addValue(const std::string& key, double v) {
     jsonValueMap[key] = new JsonValue(v);
   }
 
@@ -476,7 +509,11 @@ JsonObject* parseObject(std::vector<Token> &tokens, bool parseOneLevel = false) 
         if(!isTypeExpected(expectedType, type)) {
           return resJsonObject;
         } 
-        jsonObject->addValue(key, stringToInt(token.value)); 
+        if(token.value.find(".") == std::string::npos) {
+          jsonObject->addValue(key, stringToInt(token.value));
+        } else{
+          jsonObject->addValue(key, std::stod(token.value)); 
+        }
         expectedType = (Token::Type::COMMA | Token::Type::END_OBJ);
         preType = type;
         break;
@@ -669,6 +706,9 @@ std::string toJson(JsonValue* jsonValue) {
       json += stack.back();
       stack.pop_back();
     }
+  }
+  else if("double" == type) {
+    json = std::to_string(jsonValue->valueDouble);
   }
   else if( "boolean" == type)
   {

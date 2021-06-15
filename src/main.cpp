@@ -5,7 +5,7 @@
 
 void testObj() {
   std::cout << "parse obj:" << std::endl;
-  const char *input = "{\"subObj\":{\"subAge\":13}, \"age\":12, \"name\":\"lzp\", \"gender\":\"man\", \"good\":true, \"hungry\":false, \"tag\":null}";
+  const char *input = "{\"subObj\":{\"subAge\":13.5}, \"age\":12, \"name\":\"lzp\", \"gender\":\"man\", \"good\":true, \"hungry\":false, \"tag\":null}";
   auto jsonObj = parseObject(input);
 
   std::cout << "json:" << std::endl
